@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================
+// App models
+// =========================
+
+enum Role {
+  ADMIN
+  CAREGIVER
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  MISSED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  emailVerified Boolean        @default(false)
+  name          String
+  role          Role           @default(CAREGIVER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  shifts        Shift[]        @relation("CaregiverShifts")
+  sentMessages  Message[]      @relation("Sender")
+  threadMembers ThreadMember[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  lat       Float
+  lng       Float
+  notes     String?
+  createdAt DateTime @default(now())
+  shifts    Shift[]
+}
+
+model Shift {
+  id             String      @id @default(cuid())
+  caregiverId    String
+  caregiver      User        @relation("CaregiverShifts", fields: [caregiverId], references: [id])
+  clientId       String
+  client         Client      @relation(fields: [clientId], references: [id])
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  status         ShiftStatus @default(SCHEDULED)
+  clockInAt      DateTime?
+  clockInLat     Float?
+  clockInLng     Float?
+  clockOutAt     DateTime?
+  clockOutLat    Float?
+  clockOutLng    Float?
+  signaturePng   Bytes?
+  signedByName   String?
+  signedAt       DateTime?
+  caregiverNotes String?
+  geofenceFlag   Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  tasks          ShiftTask[]
+
+  @@index([caregiverId, scheduledStart])
+  @@index([clientId, scheduledStart])
+}
+
+model ShiftTask {
+  id          String    @id @default(cuid())
+  shiftId     String
+  shift       Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  description String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  orderIdx    Int
+
+  @@index([shiftId])
+}
+
+model MessageThread {
+  id        String         @id @default(cuid())
+  name      String?
+  createdAt DateTime       @default(now())
+  members   ThreadMember[]
+  messages  Message[]
+}
+
+model ThreadMember {
+  threadId String
+  userId   String
+  thread   MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id])
+
+  @@id([threadId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  threadId  String
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User          @relation("Sender", fields: [senderId], references: [id])
+  body      String
+  createdAt DateTime      @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+// =========================
+// Better-auth models
+// =========================
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId            String
+  accountId             String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

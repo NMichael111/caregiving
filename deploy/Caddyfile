@@ -1,0 +1,18 @@
+# Replace yourdomain.com with the domain pointed at this VM.
+# Caddy will automatically provision an HTTPS cert via Let's Encrypt.
+
+yourdomain.com {
+    encode gzip
+
+    # API: reverse proxy to the Node process managed by pm2 on :3000
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Static frontend: SPA fallback to index.html
+    handle {
+        root * /var/www/web
+        try_files {path} /index.html
+        file_server
+    }
+}
