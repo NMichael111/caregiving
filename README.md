@@ -2,6 +2,11 @@
 
 Scheduling and time-clock app for homecare agencies. Admin web dashboard + caregiver mobile view. Built with Express, React, Prisma, and Better-auth on Neon Postgres.
 
+**Live demo:** <https://caregiving.ateball.com>
+
+- Admin — `admin@villagecaregiving.com` / `admin1234`
+- Caregiver — `marcus@example.com` / `caregiver1234`
+
 ## Stack
 
 Express + TypeScript on the backend, Vite + React + Tailwind on the frontend. Prisma ORM against Neon Postgres. Better-auth handles sessions (email/password, HttpOnly cookies, DB-stored). SSE for real-time messaging — no WebSocket infrastructure needed. Single Caddy reverse proxy serves the API and static bundle from one origin, so no CORS config.
